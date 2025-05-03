@@ -1,44 +1,70 @@
-// Home page with task management (Add, View, Delete)
+// Home page with task management (Add, View, Update, Delete)
 import { useEffect, useState } from "react";
 
 const Home = ({ onLogout }) => {
-  const [tasks, setTasks] = useState([]); // State to store tasks
-  const [task, setTask] = useState(""); // State to handle new task input
+  const [tasks, setTasks] = useState([]);
+  const [task, setTask] = useState("");
+  const [editingId, setEditingId] = useState(null);
 
-  // Fetch tasks on page load
   const fetchTasks = async () => {
-    const res = await fetch("http://localhost:8000/api/goals", {
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    const data = await res.json();
-    setTasks(data);
+    try {
+      const res = await fetch("http://localhost:8000/api/goals", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await res.json();
+      setTasks(data);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+    }
   };
 
-  // Add new task
-  const addTask = async () => {
+  const addOrUpdateTask = async () => {
     if (task.trim() === "") return;
-    await fetch("http://localhost:5000/api/tasks", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify({ task }),
-    });
-    setTask("");
-    fetchTasks();
+
+    const url = editingId
+      ? `http://localhost:8000/api/goals/${editingId}`
+      : "http://localhost:8000/api/goals";
+
+    const method = editingId ? "PUT" : "POST";
+
+    try {
+      await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ text: task }),
+      });
+      setTask("");
+      setEditingId(null);
+      fetchTasks();
+    } catch (error) {
+      console.error("Error adding/updating task:", error);
+    }
   };
 
-  // Delete task by ID
   const deleteTask = async (id) => {
-    await fetch(`http://localhost:5000/api/tasks/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-    });
-    fetchTasks();
+    try {
+      await fetch(`http://localhost:8000/api/goals/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      fetchTasks();
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    }
   };
 
-  // Fetch tasks on initial load
+  const startEditing = (task) => {
+    setTask(task.text);
+    setEditingId(task._id);
+  };
+
   useEffect(() => {
     fetchTasks();
   }, []);
@@ -55,20 +81,22 @@ const Home = ({ onLogout }) => {
         </button>
       </div>
 
-      {/* Add Task Form */}
+      {/* Add / Update Task Form */}
       <div className="max-w-xl mx-auto">
         <input
           type="text"
           value={task}
           onChange={(e) => setTask(e.target.value)}
           className="w-full p-2 border rounded"
-          placeholder="Add a new task"
+          placeholder="Enter a task"
         />
         <button
-          onClick={addTask}
-          className="mt-2 w-full bg-green-500 text-white py-2 rounded"
+          onClick={addOrUpdateTask}
+          className={`mt-2 w-full ${
+            editingId ? "bg-yellow-500" : "bg-green-500"
+          } text-white py-2 rounded`}
         >
-          Add Task
+          {editingId ? "Update Task" : "Add Task"}
         </button>
       </div>
 
@@ -79,13 +107,21 @@ const Home = ({ onLogout }) => {
             key={task._id}
             className="flex justify-between items-center bg-white p-4 rounded shadow mb-2"
           >
-            {task.task}
-            <button
-              onClick={() => deleteTask(task._id)}
-              className="text-red-500"
-            >
-              Delete
-            </button>
+            <span>{task.text}</span>
+            <div className="space-x-2">
+              <button
+                onClick={() => startEditing(task)}
+                className="text-blue-500"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => deleteTask(task._id)}
+                className="text-red-500"
+              >
+                Delete
+              </button>
+            </div>
           </li>
         ))}
       </ul>
