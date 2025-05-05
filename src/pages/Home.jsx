@@ -98,7 +98,7 @@ const Home = ({ onLogout }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-60">
       {/* Header with Navigation */}
       <header className="bg-white shadow">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
